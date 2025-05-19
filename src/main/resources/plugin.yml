@@ -1,0 +1,7 @@
+name: Soldam
+main: com.github.soldam.SoldamPlugin
+version: ${version}
+api-version: 1.21
+author: GrassProject
+depend:
+  - GrassLib
