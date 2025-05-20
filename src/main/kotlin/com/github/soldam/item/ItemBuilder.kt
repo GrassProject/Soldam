@@ -11,14 +11,16 @@ import org.bukkit.NamespacedKey
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.Damageable
 import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.inventory.meta.components.FoodComponent
+import org.bukkit.inventory.meta.components.ToolComponent
 import org.bukkit.inventory.meta.components.UseCooldownComponent
-import java.util.*
+import org.bukkit.persistence.PersistentDataType
 
 class ItemBuilder {
 
-    private val itemStack: ItemStack
+    private var itemStack: ItemStack
     private val itemMeta: ItemMeta
 
     constructor(material: Material) {
@@ -33,9 +35,15 @@ class ItemBuilder {
 
     constructor(itemId: String) : this(ItemUtils.createItem(itemId) ?: ItemStack(Material.STONE))
 
-//    fun setType(type: Material): ItemBuilder {
-//        itemStack.type
-//    }
+    fun setType(type: Material): ItemBuilder {
+        itemStack = ItemStack(type)
+        return this
+    }
+
+    fun setType(type: ItemStack): ItemBuilder {
+        itemStack = type.clone()
+        return this
+    }
 
     fun setAmount(amount: Int): ItemBuilder {
         this.itemStack.amount = amount
@@ -77,8 +85,8 @@ class ItemBuilder {
         return this
     }
 
-    fun addFlags(vararg itemFlags: ItemFlag): ItemBuilder {
-        Collections.addAll(itemMeta.itemFlags, *itemFlags)
+    fun addItemFlags(vararg itemFlags: ItemFlag): ItemBuilder {
+        itemMeta.addItemFlags(*itemFlags)
         return this
     }
 
@@ -123,6 +131,7 @@ class ItemBuilder {
         return this
     }
 
+    @Deprecated("임시")
     fun setFoodComponent(foodComponent: FoodComponent): ItemBuilder {
         if (BukkitUtils.isVersionAtOrAbove("1.20.5")) {
             itemMeta.setFood(foodComponent)
@@ -130,37 +139,78 @@ class ItemBuilder {
         return this
     }
 
+    fun setToolComponent(toolComponent: ToolComponent): ItemBuilder {
+        if (BukkitUtils.isVersionAtOrAbove("1.20.5")) {
+            itemMeta.setTool(toolComponent)
+        }
+        return this
+    }
+
+//    fun setFireResistant(fireResistant: Boolean): ItemBuilder {
+//        if (BukkitUtils.isVersionAtOrAbove("1.20.5")) {
+//            itemMeta.isFireResistant = fireResistant
+//        }
+//        return this
+//    }
+
+    fun setDurability(durability: Int): ItemBuilder {
+        if (!BukkitUtils.isVersionAtOrAbove("1.20.5")) {
+            if (itemMeta is Damageable) itemMeta.damage = durability
+        }
+        return this
+    }
+
+    fun setDamagedOnBlockBreak(damagedOnBlockBreak: Boolean): ItemBuilder {
+        if (!BukkitUtils.isVersionAtOrAbove("1.20.5")) {
+            val container = itemMeta.persistentDataContainer
+            val key = NamespacedKey(SoldamPlugin.instance, "damagedOnBlockBreak")
+            container.set(key, PersistentDataType.BYTE, if (damagedOnBlockBreak) 1.toByte() else 0.toByte())
+        }
+        return this
+    }
+
+    fun setDamagedOnEntityHit(damagedOnEntityHit: Boolean): ItemBuilder {
+        if (!BukkitUtils.isVersionAtOrAbove("1.20.5")) {
+            val container = itemMeta.persistentDataContainer
+            val key = NamespacedKey(SoldamPlugin.instance, "damagedOnEntityHit")
+            container.set(key, PersistentDataType.BYTE, if (damagedOnEntityHit) 1.toByte() else 0.toByte())
+        }
+        return this
+    }
+
+
     // 1.21.2 +
 //    fun tooltipStyle(tooltips: String): ItemBuilder {
-//        if (!BukkitUtils.isVersionAtOrAbove("1.21.2")) return this
+//        if (BukkitUtils.isVersionAtOrAbove("1.21.2")) return this
 //        val parts = tooltips.split(":")
 //        itemMeta.tooltipStyle = NamespacedKey(parts[0], parts[1])
 //        return this
 //    }
 
     fun setTooltipStyle(tooltipStyle: NamespacedKey): ItemBuilder {
-        if (!BukkitUtils.isVersionAtOrAbove("1.21.2")) {
+        if (BukkitUtils.isVersionAtOrAbove("1.21.2")) {
             itemMeta.tooltipStyle = tooltipStyle
         }
         return this
     }
 
-    fun setUseCooldown(useCooldownComponent: UseCooldownComponent): ItemBuilder {
+    fun setUseCooldownComponent(useCooldownComponent: UseCooldownComponent): ItemBuilder {
         if (BukkitUtils.isVersionAtOrAbove("1.21.2")) {
             itemMeta.setUseCooldown(useCooldownComponent)
         }
         return this
     }
 
-    fun setUseCooldown(seconds: Float, group: NamespacedKey? = null): ItemBuilder {
-        if (!BukkitUtils.isVersionAtOrAbove("1.21.2")) return this
+    @Deprecated("임시")
+    fun setUseCooldownComponent(seconds: Float, group: NamespacedKey? = null): ItemBuilder {
+        if (BukkitUtils.isVersionAtOrAbove("1.21.2")) {
+            val cooldown = itemMeta.useCooldown ?: return this
 
-        val cooldown = itemMeta.useCooldown ?: return this
+            cooldown.cooldownSeconds = seconds
+            cooldown.cooldownGroup = group
 
-        cooldown.cooldownSeconds = seconds
-        cooldown.cooldownGroup = group
-
-        itemMeta.setUseCooldown(cooldown)
+            itemMeta.setUseCooldown(cooldown)
+        }
         return this
     }
 
