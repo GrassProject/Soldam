@@ -13,6 +13,7 @@ import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.Damageable
 import org.bukkit.inventory.meta.ItemMeta
+import org.bukkit.inventory.meta.components.EquippableComponent
 import org.bukkit.inventory.meta.components.FoodComponent
 import org.bukkit.inventory.meta.components.ToolComponent
 import org.bukkit.inventory.meta.components.UseCooldownComponent
@@ -21,7 +22,7 @@ import org.bukkit.persistence.PersistentDataType
 class ItemBuilder {
 
     private var itemStack: ItemStack
-    private val itemMeta: ItemMeta
+    private var itemMeta: ItemMeta
 
     constructor(material: Material) {
         this.itemStack = ItemStack(material)
@@ -68,7 +69,6 @@ class ItemBuilder {
         return this
     }
 
-
     fun setDisplayName(name: Component): ItemBuilder {
         itemMeta.displayName(name)
         return this
@@ -99,6 +99,16 @@ class ItemBuilder {
         itemMeta.setCustomModelData(modelDate)
         return this
     }
+
+//    fun clearAttributes(): ItemBuilder {
+////        itemMeta.attributeModifiers = null
+////        itemMeta.attributeModifiers?.clear()
+//
+//        val key = NamespacedKey(GrassRPGItem.instance, "none")
+//        val attackSpeedModifier = AttributeModifier(key, 0.0, AttributeModifier.Operation.ADD_NUMBER)
+//        itemMeta.addAttributeModifier(Attribute.ATTACK_SPEED, attackSpeedModifier)
+//        return this
+//    }
 
     // 1.20.5 +
     fun setItemName(name: Component): ItemBuilder {
@@ -131,7 +141,6 @@ class ItemBuilder {
         return this
     }
 
-    @Deprecated("임시")
     fun setFoodComponent(foodComponent: FoodComponent): ItemBuilder {
         if (BukkitUtils.isVersionAtOrAbove("1.20.5")) {
             itemMeta.setFood(foodComponent)
@@ -155,7 +164,7 @@ class ItemBuilder {
 
     fun setDurability(durability: Int): ItemBuilder {
         if (!BukkitUtils.isVersionAtOrAbove("1.20.5")) {
-            if (itemMeta is Damageable) itemMeta.damage = durability
+            if (itemMeta is Damageable) (itemMeta as Damageable).damage = durability
         }
         return this
     }
@@ -187,13 +196,6 @@ class ItemBuilder {
 //        return this
 //    }
 
-    fun setTooltipStyle(tooltipStyle: NamespacedKey): ItemBuilder {
-        if (BukkitUtils.isVersionAtOrAbove("1.21.2")) {
-            itemMeta.tooltipStyle = tooltipStyle
-        }
-        return this
-    }
-
     fun setUseCooldownComponent(useCooldownComponent: UseCooldownComponent): ItemBuilder {
         if (BukkitUtils.isVersionAtOrAbove("1.21.2")) {
             itemMeta.setUseCooldown(useCooldownComponent)
@@ -201,19 +203,47 @@ class ItemBuilder {
         return this
     }
 
-    @Deprecated("임시")
-    fun setUseCooldownComponent(seconds: Float, group: NamespacedKey? = null): ItemBuilder {
+    fun setTooltipStyle(tooltipStyle: NamespacedKey): ItemBuilder {
         if (BukkitUtils.isVersionAtOrAbove("1.21.2")) {
-            val cooldown = itemMeta.useCooldown ?: return this
-
-            cooldown.cooldownSeconds = seconds
-            cooldown.cooldownGroup = group
-
-            itemMeta.setUseCooldown(cooldown)
+            itemMeta.tooltipStyle = tooltipStyle
         }
         return this
     }
 
+//    @Deprecated("임시")
+//    fun setUseCooldownComponent(seconds: Float, group: NamespacedKey? = null): ItemBuilder {
+//        if (BukkitUtils.isVersionAtOrAbove("1.21.2")) {
+//            val cooldown = itemMeta.useCooldown ?: return this
+//
+//            cooldown.cooldownSeconds = seconds
+//            cooldown.cooldownGroup = group
+//
+//            itemMeta.setUseCooldown(cooldown)
+//        }
+//        return this
+//    }
+
+    fun setItemModel(itemModel: NamespacedKey): ItemBuilder {
+        if (BukkitUtils.isVersionAtOrAbove("1.21.2")) {
+            itemMeta.itemModel = itemModel
+        }
+        return this
+    }
+
+    fun setEnchantable(enchantable: Int): ItemBuilder {
+        if (BukkitUtils.isVersionAtOrAbove("1.21.2")) {
+            itemMeta.setEnchantable(enchantable)
+        }
+        return this
+    }
+
+    @Deprecated("임시")
+    fun setEquippable(equippableComponent: EquippableComponent): ItemBuilder {
+        if (BukkitUtils.isVersionAtOrAbove("1.21.2")) {
+            itemMeta.setEquippable(equippableComponent)
+        }
+        return this
+    }
 
     fun build(): ItemStack {
         itemStack.itemMeta = itemMeta

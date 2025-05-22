@@ -11,6 +11,7 @@ import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.Tag
 import org.bukkit.configuration.ConfigurationSection
+import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 
@@ -79,7 +80,9 @@ class ItemParser(private val section: ConfigurationSection) {
 
         components.getBoolean("hide_tooltip", false).let { item.setHideTooltip(it) }
 
-        // components.getConfigurationSection("food").let { item.setFoodComponent(it) }
+        components.getConfigurationSection("food")?.let { foodSection ->
+            parseFoodComponent(item, foodSection)
+        }
 
         components.getConfigurationSection("tool")?.let { toolSection ->
             parseToolComponent(item, toolSection)
@@ -96,22 +99,27 @@ class ItemParser(private val section: ConfigurationSection) {
                     cooldownSeconds = maxOf(it.getDouble("seconds", 1.0), 0.0).toFloat()
                     item.setUseCooldownComponent(this)
                 }
-            }.onFailure { e ->
-                SoldamPlugin.instance.logger.warning("Error setting UseCooldownComponent: This component is not available in your server version")
-                // if (Settings.DEBUG.toBool()) e.printStackTrace()
             }
+//                .onFailure { e ->
+//                GrassRPGItem.instance.logger.warning("Error setting UseCooldownComponent: This component is not available in your server version")
+//                // if (Settings.DEBUG.toBool()) e.printStackTrace()
+//            }
         }
 
         components.getString("tooltip_style")?.let(NamespacedKey::fromString)?.let(item::setTooltipStyle)
 
+        components.getString("item_model")?.let(NamespacedKey::fromString)?.let(item::setItemModel)
+
+        components.getInt("enchantable").let { item.setEnchantable(it) }
+
     }
 
-    fun parseVanillaSections(item: ItemBuilder) {
+    private fun parseVanillaSections(item: ItemBuilder) {
         section.getStringList("ItemFlags").mapNotNull {
             runCatching { ItemFlag.valueOf(it.uppercase()) }.getOrNull()
         }.takeIf { it.isNotEmpty() }?.let { item.addItemFlags(*it.toTypedArray()) }
 
-        section.getConfigurationSection("enchantments")?.let { enchSection ->
+        section.getConfigurationSection("Enchantments")?.let { enchSection ->
             enchSection.getKeys(false).forEach { enchName ->
                 val key = NamespacedKey.minecraft(enchName.lowercase())
                 val enchant = RegistryAccess.registryAccess()
@@ -119,10 +127,12 @@ class ItemParser(private val section: ConfigurationSection) {
                     .get(key)
 
                 if (enchant != null) {
-                    item.addEnchant(enchant, enchSection.getInt(enchName, 1))
+                    val level = enchSection.getInt(enchName, 1)
+                    item.addEnchant(enchant, level)
                 }
             }
         }
+
     }
 
     private fun parseToolComponent(item: ItemBuilder, toolSection: ConfigurationSection) {
@@ -132,7 +142,7 @@ class ItemParser(private val section: ConfigurationSection) {
             toolSection.getDouble("default_mining_speed", 1.0).toFloat().coerceAtLeast(0f)
 
         toolSection.getMapList("rules").forEach { rule ->
-            val map = rule as? Map<*, *> ?: return@forEach
+            val map = rule ?: return@forEach
             val speed = map["speed"].toString().toFloatOrNull() ?: 1f
             val correctForDrops = map["correct_for_drops"].toString().toBoolean()
 
@@ -162,4 +172,24 @@ class ItemParser(private val section: ConfigurationSection) {
 
         item.setToolComponent(toolComponent)
     }
+
+    private fun parseFoodComponent(item: ItemBuilder, foodSection: ConfigurationSection) {
+        val foodComponent = ItemStack(type).itemMeta.food
+        foodComponent.nutrition = foodSection.getInt("nutrition", 1).coerceAtLeast(0)
+        foodComponent.saturation = foodSection.getDouble("saturation", 0.0).toFloat().coerceIn(0f, 100f)
+        foodComponent.setCanAlwaysEat(foodSection.getBoolean("can_always_eat", false))
+        item.setFoodComponent(foodComponent)
+    }
+
+    @Deprecated("임시")
+    private fun parseEquippableComponent(item: ItemBuilder, equippableSection: ConfigurationSection) {
+        val equippableComponent = ItemStack(type).itemMeta.equippable
+
+        equippableSection.getString("slot")?.let {
+            equippableComponent.setSlot(EquipmentSlot.valueOf(it))
+        }
+
+
+    }
+
 }
